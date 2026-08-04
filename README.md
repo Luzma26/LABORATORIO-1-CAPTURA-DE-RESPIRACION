@@ -6,37 +6,80 @@
 La respiración es un proceso fisiológico indispensable para el intercambio de oxígeno y dióxido de carbono entre el organismo y el medio ambiente. La frecuencia respiratoria constituye uno de los signos vitales más importantes, ya que permite evaluar el estado fisiológico de una persona y detectar posibles alteraciones clínicas. En esta práctica se desarrolló un sistema de adquisición de la señal respiratoria utilizando un sensor resistivo sensible a la fuerza (FSR400), una placa Arduino Uno y MATLAB, con el propósito de obtener el patrón respiratorio y analizar las diferencias existentes entre la respiración en reposo y durante una actividad de verbalización.
 
 ## METODOLOGIA
-Inicialmente se seleccionó un sensor FSR400 debido a que permite detectar cambios de presión ocasionados por el movimiento de la caja torácica durante la respiración. El sensor se conectó mediante un divisor de voltaje alimentado con 5 V utilizando una resistencia fija de 47 kΩ, ya que durante las primeras pruebas con una resistencia de menor valor la variación de la señal fue insuficiente para identificar claramente los ciclos respiratorios.
+Inicialmente se seleccionó un sensor FSR400 debido a que permite detectar cambios de presión ocasionados por el movimiento de la caja torácica durante la respiración. El sensor se conectó mediante un divisor de voltaje alimentado con 5 V utilizando una resistencia fija de 47 kΩ. Durante las primeras pruebas se observó que valores menores de resistencia producían una variación muy pequeña en la salida del sensor, por lo que fue necesario aumentar dicho valor para mejorar la sensibilidad del sistema.
 
-Posteriormente, el punto medio del divisor de voltaje se conectó a la entrada analógica A0 de una placa Arduino Uno. Para la adquisición de la señal se desarrolló un programa sencillo en Arduino IDE. En la función "setup()" se inicializó la comunicación serial a una velocidad de 9600 baudios, permitiendo la transmisión de datos hacia MATLAB. Posteriormente, dentro de la función "loop()", el Arduino realizó continuamente la lectura del sensor mediante la función "analogRead(A0)", almacenando el valor digital correspondiente a la señal respiratoria. Cada lectura fue enviada inmediatamente al computador utilizando "Serial.println()", mientras que la instrucción "delay(80)" estableció un intervalo aproximado de 80 ms entre muestras para mantener una adquisición continua y estable.
+Con el fin de incrementar aún más la respuesta del sensor frente a los pequeños movimientos producidos por la respiración, se colocó una pequeña espuma alrededor de la zona sensible del FSR. Esta espuma permitió mantener una presión inicial constante sobre el sensor, haciendo que pequeñas expansiones y contracciones del tórax generaran variaciones más evidentes en la señal registrada.
 
-Antes de colocar el sensor sobre el cuerpo se verificó el funcionamiento del circuito presionando manualmente el FSR y observando la respuesta mediante la herramienta Serial Plotter del entorno Arduino IDE. Esta prueba permitió comprobar que el sensor respondía correctamente a los cambios de presión antes de realizar las mediciones sobre el sujeto.
+Posteriormente, el punto medio del divisor de voltaje se conectó a la entrada analógica A0 de una placa Arduino Uno. Para la adquisición de la señal se desarrolló un programa sencillo en Arduino IDE, mostrado en el Código 1.
 
-Una vez validado el funcionamiento del sistema, el sensor fue ubicado sobre una de las costillas del sujeto de prueba y asegurado mediante una banda elástica para mantener un contacto constante con el tórax durante toda la adquisición. Se realizaron dos registros utilizando el Serial Plotter. El primero correspondió a la respiración en reposo, mientras que el segundo se obtuvo durante una lectura en voz alta con el propósito de evaluar la influencia de la verbalización sobre el patrón respiratorio.
+### Programa en Arduino UNO
 
-Posteriormente se desarrolló un programa en MATLAB para capturar y procesar la información enviada por el Arduino. Inicialmente se estableció la comunicación serial mediante la función "serialport", indicando el puerto COM utilizado y la misma velocidad de transmisión configurada en el Arduino. Después de un breve tiempo de espera para garantizar el establecimiento de la comunicación, se creó un vector destinado a almacenar las muestras adquiridas.
+    void setup() {
+    Serial.begin(9600);
+    }
 
-La adquisición de datos se realizó mediante un ciclo "for", dentro del cual la función "readline()" recibió cada dato enviado por el Arduino a través del puerto serial. Cada valor recibido fue convertido de texto a formato numérico mediante la función "str2double()" y almacenado secuencialmente en el vector correspondiente. Al finalizar la captura, la señal fue guardada automáticamente en un archivo con extensión ".mat", permitiendo conservar la información para análisis posteriores.
+    void loop() {
+    int dato = analogRead(A0);
+    Serial.println(dato);
+    delay(80);
+    }
+En la función setup() se inicializó la comunicación serial a una velocidad de 9600 baudios, permitiendo el envío continuo de datos hacia MATLAB. Posteriormente, dentro de la función loop(), el Arduino realizó la lectura permanente del sensor mediante analogRead(A0) y transmitió cada muestra utilizando Serial.println(). Finalmente, la instrucción delay(80) estableció un intervalo aproximado de 80 ms entre muestras, equivalente a una frecuencia de adquisición cercana a 10 Hz, suficiente para registrar la respiración humana.
 
-Posteriormente se aplicó un filtro de media móvil utilizando la función "movmean" con una ventana de cinco muestras. Este procedimiento permitió reducir pequeñas fluctuaciones presentes en la señal sin modificar significativamente el comportamiento general del patrón respiratorio. Después del filtrado se eliminó el valor promedio de la señal mediante la función "mean", con el objetivo de reducir la componente continua antes del análisis espectral.
+Antes de colocar el sensor sobre el cuerpo se verificó el funcionamiento del circuito presionando manualmente el FSR y observando la respuesta mediante el Serial Plotter de Arduino IDE. Una vez comprobado su funcionamiento, el sensor fue ubicado sobre una de las costillas del sujeto de prueba y asegurado mediante una banda elástica para mantener un contacto constante durante toda la adquisición.
 
-Finalmente se representó gráficamente la señal original y la señal filtrada para comparar visualmente el efecto del filtrado. Posteriormente se calculó la Transformada Rápida de Fourier "(FFT)" de la señal filtrada utilizando la función fft, obteniendo su representación en el dominio de la frecuencia. A partir del espectro obtenido se identificó la frecuencia dominante correspondiente a la respiración y se calculó la frecuencia respiratoria en respiraciones por minuto multiplicando dicho valor por sesenta.
+Se realizaron dos registros experimentales. El primero correspondió a la respiración en reposo, mientras que el segundo se obtuvo durante una lectura en voz alta con el propósito de evaluar la influencia de la verbalización sobre el patrón respiratorio.
+
+Posteriormente se desarrolló un programa en MATLAB para capturar, procesar y analizar la información enviada por el Arduino. Las principales etapas del procesamiento se describen a continuación.
+
+### Comunicación serial
+    puerto = serialport("COM3",9600);
+    pause(2)
+    
+    senal = [];
+    
+    for i = 1:300
+        texto = readline(puerto);
+        senal(i) = str2double(texto);
+    end
+Inicialmente se abrió el puerto serial utilizando la función serialport(), especificando el puerto COM correspondiente y la velocidad de transmisión de 9600 baudios. Después de una pausa de dos segundos para garantizar el establecimiento de la comunicación, se ejecutó un ciclo for que recibió 300 muestras provenientes del Arduino mediante la función readline(). Cada dato recibido fue convertido de texto a formato numérico utilizando str2double() y almacenado dentro del vector senal.
+
+### Almacenamiento de la información
+    save("senal_hablando.mat","senal")
+Este procedimiento permitió conservar los datos experimentales para realizar posteriormente el procesamiento y el análisis sin necesidad de repetir la adquisición.
+
+### Correcion de polaridad y filtrado
+    senal = 1023 - senal;
+    senal_filtrada = movmean(senal,5);
+La inversión de la señal se realizó porque la configuración utilizada en el divisor de voltaje producía una respuesta invertida respecto al movimiento respiratorio; de esta forma, durante la inspiración los valores aumentaban en lugar de disminuir, facilitando la interpretación de los resultados. Posteriormente se aplicó un filtro de media móvil con una ventana de cinco muestras mediante la función movmean(), reduciendo pequeñas fluctuaciones y suavizando el comportamiento de la señal sin modificar significativamente su patrón respiratorio.
+
+Finalmente, ambas señales fueron representadas gráficamente para comparar el efecto del filtrado.
+
+    figure
+    plot(senal)
+    hold on
+    plot(senal_filtrada,'LineWidth',2)
+### Analisis en frecuencia
+    fs = 10;
+    N = length(senal_filtrada);
+    senal_fft = senal_filtrada - mean(senal_filtrada);
+    Y = abs(fft(senal_fft));
+    f = (0:N-1)*fs/N;
+En primer lugar se definió una frecuencia de muestreo aproximada de 10 Hz, correspondiente al intervalo de adquisición utilizado por el Arduino. Posteriormente se eliminó el valor promedio de la señal para reducir la componente continua y mejorar el análisis espectral. Después se calculó la FFT mediante la función fft(), obteniendo el espectro de magnitud correspondiente.
+
+Finalmente, se identificó automáticamente la frecuencia dominante y se calculó la frecuencia respiratoria en respiraciones por minuto.
+
+    [valor,pos] = max(Y(2:N/2));
+    frecuencia = f(pos+1);
+    disp("Frecuencia dominante (Hz):")
+    disp(frecuencia)
+    disp("Respiraciones por minuto:")
+    disp(frecuencia*60)
+La frecuencia dominante corresponde al componente principal presente en el espectro de la señal respiratoria. Multiplicando este valor por 60 se obtuvo la frecuencia respiratoria expresada en respiraciones por minuto, permitiendo comparar los resultados obtenidos durante la respiración en reposo y durante la verbalización.
 ## DISCUSION
-Durante las primeras pruebas el sistema presentó poca sensibilidad para detectar los movimientos respiratorios cuando se utilizó un divisor de voltaje con una resistencia de menor valor. En estas condiciones la señal permanecía cercana al valor máximo del conversor análogo-digital (1023) y únicamente cambiaba cuando el sensor era presionado directamente con los dedos. Después de reemplazar la resistencia por una de 47 kΩ, la variación de la señal aumentó considerablemente y fue posible registrar los cambios producidos por la expansión y contracción de la caja torácica durante la respiración.
+Durante las primeras pruebas el sistema presentó poca sensibilidad para detectar los movimientos respiratorios cuando se utilizó un divisor de voltaje con una resistencia de menor valor. En estas condiciones la señal permanecía cercana al valor máximo del conversor análogo-digital (1023) y únicamente cambiaba cuando el sensor era presionado directamente con los dedos. Debido a esto fue necesario modificar el circuito, reemplazando la resistencia por una de 47 kΩ, lo que incrementó la sensibilidad del divisor de voltaje y permitió obtener una mayor variación de la señal durante el movimiento del tórax.
 
-Aunque el sistema permitió identificar los ciclos respiratorios, la forma de la señal obtenida no correspondió a una onda suave o aproximadamente senoidal como la que suele observarse en sistemas de monitoreo respiratorio basados en bandas extensiométricas, sensores piezoeléctricos o sensores de flujo de aire. En las señales obtenidas, tanto en el Serial Plotter como en MATLAB, se observó que la mayor parte del tiempo la señal permanecía cercana al valor máximo del conversor y presentaba descensos pronunciados durante la inspiración. Esto indica que el sensor respondió principalmente cuando la presión ejercida sobre él aumentó de manera suficiente debido al movimiento del tórax.
+A pesar de esta mejora, las primeras señales obtenidas continuaban siendo poco representativas del patrón respiratorio esperado, ya que el sensor solamente respondía cuando existían cambios relativamente grandes de presión. Por esta razón se realizó un ajuste mecánico adicional, incorporando una pequeña espuma alrededor de la zona sensible del FSR400. Esta modificación permitió mantener una presión inicial constante sobre el sensor, haciendo que pequeñas variaciones producidas por la expansión y contracción del tórax fueran detectadas con mayor facilidad. Como consecuencia, la señal adquirida presentó una transición mucho más continua y una forma considerablemente más cercana al comportamiento esperado para un ciclo respiratorio.
 
-Este comportamiento puede explicarse por las características propias del sensor FSR400. Según la documentación técnica de Interlink Electronics, los sensores FSR presentan una respuesta no lineal, histéresis y una sensibilidad limitada para detectar pequeñas variaciones de fuerza. Además, fueron diseñados principalmente para detectar cambios de presión y no para medir continuamente desplazamientos de pequeña amplitud como los producidos durante la respiración. Por esta razón, la forma de la señal obtenida difiere de la reportada para sensores específicamente diseñados para monitoreo respiratorio, aunque conserva la información suficiente para identificar el patrón respiratorio y estimar la frecuencia respiratoria.
-
-Las señales obtenidas presentaron una respuesta invertida, es decir, durante la inspiración el valor digital disminuyó en lugar de aumentar. Este comportamiento corresponde a la configuración utilizada en el divisor de voltaje y no representa un error de funcionamiento, ya que la información relevante para el análisis corresponde a la periodicidad de la señal y no a su polaridad.
-
-Al comparar ambas condiciones experimentales se observó que los patrones respiratorios fueron diferentes. Durante la respiración en reposo la señal presentó un comportamiento relativamente periódico y repetitivo, mientras que durante la lectura en voz alta los ciclos aparecieron con menor regularidad y con intervalos más largos entre inspiraciones. Este comportamiento coincide con lo descrito por Guyton y Hall, quienes indican que durante el habla la espiración se prolonga para permitir la emisión continua de la voz, mientras que las inspiraciones son más rápidas y menos frecuentes, modificando tanto el patrón como la frecuencia respiratoria.
-
-El filtro de media móvil permitió disminuir pequeñas fluctuaciones presentes en la señal y mejorar su visualización, aunque no modificó la forma general del patrón respiratorio. Posteriormente, el análisis mediante la Transformada Rápida de Fourier permitió identificar la frecuencia dominante y calcular automáticamente la frecuencia respiratoria en respiraciones por minuto. La mayor parte de la energía del espectro se concentró en bajas frecuencias, comportamiento consistente con los rangos fisiológicos descritos para adultos sanos.
-
-Respecto al uso de múltiples sensores para el monitoreo respiratorio, estos podrían proporcionar una mayor confiabilidad al sistema, ya que permitirían registrar simultáneamente el movimiento del tórax y del abdomen, reduciendo la influencia de una ubicación inadecuada del sensor o de movimientos involuntarios del sujeto. Sin embargo, también aumentarían el costo del sistema, la complejidad del acondicionamiento electrónico, la cantidad de información que debe procesarse y la incomodidad para el usuario. Para los objetivos de esta práctica, un único sensor FSR resultó suficiente para identificar el patrón respiratorio y calcular la frecuencia respiratoria, aunque un sistema multisensor podría proporcionar señales de mejor calidad.
-
-En términos generales, el sistema implementado permitió cumplir los objetivos propuestos. Aunque la forma de la señal obtenida no fue completamente suave debido a las limitaciones propias del sensor FSR400, fue posible diferenciar claramente la respiración en reposo de la respiración durante la verbalización, así como obtener la frecuencia dominante mediante el análisis espectral, demostrando que el sistema desarrollado fue adecuado para el propósito de la práctica.
 
 ## CONCLUSION
 Se implementó un sistema de adquisición de la señal respiratoria utilizando un sensor FSR400, un divisor de voltaje con una resistencia de 47 kΩ, una placa Arduino Uno y MATLAB para el procesamiento de la información. El sistema permitió registrar la señal respiratoria, aplicar un filtrado sencillo y obtener su representación en el dominio de la frecuencia. Los resultados mostraron diferencias entre la respiración en reposo y durante la verbalización, evidenciando que el habla modifica el patrón respiratorio. A pesar de las limitaciones propias del sensor FSR, el sistema resultó adecuado para cumplir los objetivos planteados en la práctica.
