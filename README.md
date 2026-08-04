@@ -94,15 +94,18 @@ Durante las primeras pruebas el sistema presentó poca sensibilidad para detecta
 A pesar de esta mejora, las primeras señales obtenidas continuaban siendo poco representativas del patrón respiratorio esperado, ya que el sensor solamente respondía cuando existían cambios grandes de presión. Por esta razón se realizó un ajuste adicional, incorporando una pequeña espuma alrededor de la zona sensible del FSR400. Esta modificación permitió mantener una presión inicial constante sobre el sensor, haciendo que pequeñas variaciones producidas por la expansión y contracción del tórax fueran detectadas con mayor facilidad. Como consecuencia, la señal adquirida presentó una transición mucho más continua y una forma considerablemente más cercana al comportamiento esperado para un ciclo respiratorio [5].
 
 <img width="682" height="772" alt="image" src="https://github.com/user-attachments/assets/b061bab2-51eb-4c10-bd1a-c656bd0991de" />
+
 Las señales registradas mediante el Serial Plotter muestran la diferencia entre ambas condiciones experimentales. Durante la respiración en reposo se observaron ciclos repetitivos y relativamente periódicos, donde cada inspiración produjo una variación amplia del valor entregado por el sensor. En contraste, durante la verbalización el patrón dejó de ser periódico, apareciendo inspiraciones más espaciadas y periodos prolongados de exhalación [1].
 
 Posteriormente, las señales fueron procesadas en MATLAB. Debido a la configuración empleada en el divisor de voltaje, la salida del sensor presentaba un comportamiento invertido, es decir, durante la inspiración el valor disminuía en lugar de aumentar. Para facilitar la interpretación de los resultados se realizó la inversión de la señal mediante la operación:
 
     Señal invertida=1023−Señal original
 De esta manera las inspiraciones quedaron representadas por máximos de la señal, permitiendo una interpretación más intuitiva sin modificar la información contenida en la medición.
+
 <img width="563" height="842" alt="image" src="https://github.com/user-attachments/assets/599613dd-dd36-4e5d-aaad-d88273a425d0" />
 
 En la condición de reposo se obtuvo un patrón respiratorio periódico, observándo aproximadamente cinco ciclos completos durante el tiempo de adquisición. La frecuencia dominante obtenida mediante la Transformada Rápida de Fourier se ubicó alrededor de 0.17–0.20 Hz, equivalente aproximadamente a 10–12 respiraciones por minuto, valor que se encuentra muy cercano al rango fisiológico normal reportado para adultos sanos en reposo, comprendido entre 12 y 20 respiraciones por minuto, según la American Thoracic Society y Guyton & Hall [1][2]. La ligera diferencia puede atribuirse a que el sujeto realizó respiraciones profundas y controladas durante la prueba, disminuyendo naturalmente la frecuencia respiratoria.
+
 <img width="496" height="762" alt="image" src="https://github.com/user-attachments/assets/245fb991-5481-4df1-90bb-6a45f2f9cfaa" />
 
 Posteriormente se aplicó un filtro de media móvil con una ventana de cinco muestras utilizando la función movmean() de MATLAB. Este filtrado redujo pequeños picos producidos por el ruido del sensor sin alterar significativamente el comportamiento general de la señal, permitiendo identificar con mayor claridad cada ciclo respiratorio.
